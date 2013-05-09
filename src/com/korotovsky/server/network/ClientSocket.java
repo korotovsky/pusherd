@@ -7,38 +7,20 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.logging.Logger;
 
-/**
- *
- */
 public class ClientSocket implements Runnable {
-    /**
-     *
-     */
+    final private static String EXIT_SIGNAL = "exit";
     private Socket socket;
-    /**
-     *
-     */
     private Logger logger;
-    /**
-     *
-     */
     private PrintWriter writer;
-    /**
-     *
-     */
     private BufferedReader reader;
 
     /**
-     *
      * @param logger Logger
      */
     public ClientSocket(Logger logger) {
         this.logger = logger;
     }
 
-    /**
-     *
-     */
     @Override
     public void run() {
         try {
@@ -60,16 +42,13 @@ public class ClientSocket implements Runnable {
         }
     }
 
-    /**
-     *
-     */
-    public Boolean read() throws IOException {
+    public boolean read() throws IOException {
         String line = reader.readLine();
 
         logger.info("Remote socket address: " + socket.getRemoteSocketAddress().toString());
         logger.info("Received data: " + line);
 
-        if (line == null || "exit".equals(line)) {
+        if (EXIT_SIGNAL.equals(line)) {
             logger.info("Remote socket has gone away: " + socket.getRemoteSocketAddress().toString());
 
             return close();
@@ -79,7 +58,6 @@ public class ClientSocket implements Runnable {
     }
 
     /**
-     *
      * @param socket Socket
      * @return ClientSocket
      */
@@ -89,10 +67,7 @@ public class ClientSocket implements Runnable {
         return this;
     }
 
-    /**
-     *
-     */
-    public Boolean close() throws IOException {
+    public boolean close() throws IOException {
         writer.close();
         reader.close();
         socket.close();

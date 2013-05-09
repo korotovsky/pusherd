@@ -7,44 +7,18 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-/**
- *
- */
 class Bootstrap {
-    /**
-     *
-     */
-    protected final Logger logger;
-    /**
-     *
-     */
-    protected Integer port = 10000;
-    /**
-     *
-     */
-    protected Integer connections = 1024;
-    /**
-     *
-     */
-    protected String address = "127.0.0.1";
-    /**
-     *
-     */
-    protected ExecutorService clientSockets;
-    /**
-     *
-     */
-    protected Thread thread;
+    private final Logger logger;
+    private Integer port = 10000;
+    private Integer connections = 1024;
+    private String address = "127.0.0.1";
+    private ExecutorService clientSockets;
+    private Thread thread;
 
-    /**
-     *
-     */
     public Bootstrap(final Logger logger) {
         clientSockets = Executors.newCachedThreadPool();
         this.logger = logger;
@@ -63,7 +37,6 @@ class Bootstrap {
     }
 
     /**
-     * Get a logger object
      * @return Logger
      */
     public Logger getLogger()
@@ -72,7 +45,6 @@ class Bootstrap {
     }
 
     /**
-     * Get an ExecutorService instance
      * @return ExecutorService
      */
     public ExecutorService getExecutorService() {
@@ -80,7 +52,6 @@ class Bootstrap {
     }
 
     /**
-     * Check for all threads are alive
      * @return Boolean
      */
     public Boolean isTerminated()
