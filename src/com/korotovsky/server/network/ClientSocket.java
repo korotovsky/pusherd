@@ -42,8 +42,8 @@ public class ClientSocket implements Runnable {
     @Override
     public void run() {
         try {
-            this.reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-            this.writer = new PrintWriter(this.socket.getOutputStream(), true);
+            reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+            writer = new PrintWriter(this.socket.getOutputStream(), true);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -52,7 +52,7 @@ public class ClientSocket implements Runnable {
             try {
                 logger.info("Trying to read data");
 
-                this.read();
+                read();
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
@@ -64,7 +64,7 @@ public class ClientSocket implements Runnable {
      *
      */
     public Boolean read() throws IOException {
-        String line = this.reader.readLine();
+        String line = reader.readLine();
 
         logger.info("Remote socket address: " + socket.getRemoteSocketAddress().toString());
         logger.info("Received data: " + line);
@@ -72,7 +72,7 @@ public class ClientSocket implements Runnable {
         if (line == null || "exit".equals(line)) {
             logger.info("Remote socket has gone away: " + socket.getRemoteSocketAddress().toString());
 
-            return this.close();
+            return close();
         }
 
         return true;
@@ -93,9 +93,9 @@ public class ClientSocket implements Runnable {
      *
      */
     public Boolean close() throws IOException {
-        this.writer.close();
-        this.reader.close();
-        this.socket.close();
+        writer.close();
+        reader.close();
+        socket.close();
 
         return true;
     }

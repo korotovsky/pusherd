@@ -46,8 +46,8 @@ class Bootstrap {
      *
      */
     public Bootstrap(final Logger logger) {
+        clientSockets = Executors.newCachedThreadPool();
         this.logger = logger;
-        this.clientSockets = Executors.newCachedThreadPool();
 
         try {
             InetAddress inetAddress = InetAddress.getByName(address);
@@ -92,7 +92,7 @@ class Bootstrap {
      * @param serverSocket ServerSocket
      */
     protected void runClientSocketsThread(final ServerSocket serverSocket) {
-        this.thread = new Thread() {
+        thread = new Thread() {
             @Override
             public void run() {
                 while (true) {
@@ -120,6 +120,6 @@ class Bootstrap {
             }
         };
 
-        this.thread.start();
+        thread.start();
     }
 }
