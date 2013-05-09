@@ -78,7 +78,7 @@ class Bootstrap {
                 }
             }
 
-            public synchronized void addClientSockets(final ServerSocket serverSocket) throws IOException
+            public void addClientSockets(final ServerSocket serverSocket) throws IOException
             {
                 Socket socket = serverSocket.accept();
 
@@ -87,7 +87,9 @@ class Bootstrap {
                 ClientSocket clientSocket = new ClientSocket(logger);
                 clientSocket.setSocket(socket);
 
-                clientSockets.submit(clientSocket);
+                synchronized (this) {
+                    clientSockets.submit(clientSocket);
+                }
             }
         };
 

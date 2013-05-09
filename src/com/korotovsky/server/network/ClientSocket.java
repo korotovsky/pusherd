@@ -1,14 +1,11 @@
 package com.korotovsky.server.network;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.logging.Logger;
 
 public class ClientSocket implements Runnable {
-    final private static String EXIT_SIGNAL = "exit";
+    private final static String EXIT_SIGNAL = "exit";
     private Socket socket;
     private Logger logger;
     private PrintWriter writer;
@@ -24,10 +21,10 @@ public class ClientSocket implements Runnable {
     @Override
     public void run() {
         try {
-            reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-            writer = new PrintWriter(this.socket.getOutputStream(), true);
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.info(e.getMessage());
         }
 
         while (true) {
@@ -36,7 +33,7 @@ public class ClientSocket implements Runnable {
 
                 read();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.info(e.getMessage());
                 break;
             }
         }
