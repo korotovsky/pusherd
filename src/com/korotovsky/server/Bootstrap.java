@@ -1,7 +1,8 @@
 package com.korotovsky.server;
 
-import com.korotovsky.server.network.*;
+import com.korotovsky.server.core.Game;
 import com.korotovsky.server.client.*;
+import com.korotovsky.server.network.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -21,10 +22,12 @@ public class Bootstrap {
     private ExecutorService clientSockets;
     private HashMap<Long, Info> clients;
     private Thread thread;
+    private Game game;
 
     public Bootstrap(final Logger logger) {
         clientSockets = Executors.newCachedThreadPool();
         clients = new HashMap<Long, Info>();
+        game = new Game(this);
 
         this.logger = logger;
 
@@ -82,8 +85,11 @@ public class Bootstrap {
                 ClientSocket clientSocket = new ClientSocket(logger);
 
                 clientSocket.setSocket(socket);
-                clientSocket.attach(ClientSocket.CALLBACK_REGISTER_CLIENT, new Callback(that, "registerClientCallback"));
-                clientSocket.attach(ClientSocket.CALLBACK_UN_REGISTER_CLIENT, new Callback(that, "unRegisterClientCallback"));
+                clientSocket.attach(ClientSocket.CALLBACK_BT_PUSH_CLIENT, new Callback(that, "registerClientCallback"));
+                clientSocket.attach(ClientSocket.CALLBACK_BT_POP_CLIENT, new Callback(that, "unRegisterClientCallback"));
+                clientSocket.attach(ClientSocket.CALLBACK_GAME_GET_PLAYERS, new Callback(that.game, ClientSocket.CALLBACK_GAME_GET_PLAYERS));
+                clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_PUSH, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_PUSH));
+                clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_READY, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_READY));
 
                 synchronized (this) {
                     clientSockets.submit(clientSocket);
