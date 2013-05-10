@@ -29,8 +29,6 @@ public class ClientSocket implements Runnable {
 
         while (true) {
             try {
-                logger.info("Trying to read data");
-
                 read();
             } catch (IOException e) {
                 logger.info(e.getMessage());

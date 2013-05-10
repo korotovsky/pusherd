@@ -10,8 +10,7 @@ public class Main implements Runnable {
         new Thread(new Main()).start();
     }
 
-    public void run()
-    {
+    public void run() {
         Bootstrap bootstrap = new Bootstrap(Logger.getLogger("server"));
 
         //bootstrap.getExecutorService().shutdown();

@@ -39,23 +39,14 @@ class Bootstrap {
     /**
      * @return Logger
      */
-    public Logger getLogger()
-    {
+    public Logger getLogger() {
         return logger;
-    }
-
-    /**
-     * @return ExecutorService
-     */
-    public ExecutorService getExecutorService() {
-        return clientSockets;
     }
 
     /**
      * @return Boolean
      */
-    public Boolean isTerminated()
-    {
+    public Boolean isTerminated() {
         return thread.isAlive();
     }
 
@@ -73,13 +64,15 @@ class Bootstrap {
                         addClientSockets(serverSocket);
                     } catch (IOException e) {
                         logger.warning(e.getMessage());
+
+                        Thread.currentThread().interrupt();
+
                         break;
                     }
                 }
             }
 
-            public void addClientSockets(final ServerSocket serverSocket) throws IOException
-            {
+            public void addClientSockets(final ServerSocket serverSocket) throws IOException {
                 Socket socket = serverSocket.accept();
 
                 logger.info("Client connected");
