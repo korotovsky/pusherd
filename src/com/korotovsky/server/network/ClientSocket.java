@@ -2,6 +2,9 @@ package com.korotovsky.server.network;
 
 import com.korotovsky.server.Callback;
 import com.korotovsky.server.client.*;
+import com.korotovsky.server.network.protocol.responses.AcceptedResponse;
+import com.korotovsky.server.network.protocol.responses.ErrorResponse;
+import com.korotovsky.server.network.protocol.responses.MessageResponse;
 
 import java.io.*;
 import java.net.Socket;
@@ -9,9 +12,12 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 
 public class ClientSocket extends Thread {
+    public final static Integer SUPPORTED_CLIENT_VERSION = 1;
+    public final static String CALLBACK_REGISTER_CLIENT = "registerClient";
+    public final static String CALLBACK_UN_REGISTER_CLIENT = "unRegisterClient";
+
     private final static String EXIT_SIGNAL = "exit";
     private final static String HELO_SIGNAL = "helo";
-    private final static Integer SUPPORTED_CLIENT_VERSION = 1;
 
     private Boolean isRegistered = false;
 
@@ -19,9 +25,6 @@ public class ClientSocket extends Thread {
     private Socket socket;
 
     private HashMap<String, Callback> callbacks;
-
-    public final static String CALLBACK_REGISTER_CLIENT = "registerClient";
-    public final static String CALLBACK_UN_REGISTER_CLIENT = "unRegisterClient";
 
     private BufferedWriter writer;
     private BufferedReader reader;
@@ -56,52 +59,33 @@ public class ClientSocket extends Thread {
         }
     }
 
-    public void write(String data) throws IOException {
-        logger.info("Write to client: " + data);
-
-        writer.write(data);
-        writer.newLine();
-        writer.flush();
-    }
-
-    public boolean read() throws Throwable {
-        String line = reader.readLine();
-
-        if (line == null) {
-            return close();
-        }
-
-        logger.info("Remote socket address: " + socket.getRemoteSocketAddress().toString());
-        logger.info("Received data: " + line);
-
-        if (line.startsWith(HELO_SIGNAL)) {
-            logger.info("Received helo");
-            String[] heloParts = line.split(":");
-
-            return registerClient(heloParts);
-        } else if (line.equals(EXIT_SIGNAL)) {
-            return close();
-
-        } else if (!isRegistered) {
-            return close();
-        }
-
-        return true;
-    }
-
-    /**
-     * @param socket Socket
-     * @return ClientSocket
-     */
     public ClientSocket setSocket(Socket socket) {
         this.socket = socket;
 
         return this;
     }
 
-    public boolean close() throws Throwable {
-        logger.info("Remote socket has gone away: " + socket.getRemoteSocketAddress().toString());
+    private boolean read() throws Throwable {
+        String line = reader.readLine();
 
+        if (line == null) {
+            return close();
+        }
+
+        if (line.startsWith(HELO_SIGNAL)) {
+            return registerClient(line);
+        } else if (line.equals(EXIT_SIGNAL)) {
+            return close();
+        } else if (!isRegistered) {
+            return close();
+        }
+
+        new MessageResponse(writer).setMessage(line).send();
+
+        return true;
+    }
+
+    private boolean close() throws Throwable {
         callbacks.get(CALLBACK_UN_REGISTER_CLIENT).invoke(this.getId());
 
         writer.close();
@@ -111,9 +95,12 @@ public class ClientSocket extends Thread {
         return true;
     }
 
-    private boolean registerClient(String[] parts) throws IOException{
+    private boolean registerClient(String line) throws IOException {
+        String[] parts = line.split(":");
+
         if (parts.length < 2) {
-            write("Received invalid helo string");
+            new ErrorResponse(writer).setMessage(ErrorResponse.MSG_INVALID_HELO).send();
+
             return false;
         }
 
@@ -128,16 +115,14 @@ public class ClientSocket extends Thread {
             try {
                 callbacks.get(CALLBACK_REGISTER_CLIENT).invoke(this.getId(), clientInfo);
 
-                write("Register success");
+                new AcceptedResponse(writer).send();
 
                 return isRegistered = true;
             } catch (Exception e) {
                 logger.warning(e.getMessage());
             }
         } else {
-            write("Mismatch client version, supported version is: " + SUPPORTED_CLIENT_VERSION);
-
-            return false;
+            new ErrorResponse(writer).setMessage(ErrorResponse.MSG_MISMATCH_VERSION).send();
         }
 
         return false;
