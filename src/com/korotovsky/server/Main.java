@@ -1,5 +1,8 @@
 package com.korotovsky.server;
 
+import com.korotovsky.server.client.*;
+
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class Main implements Runnable {
@@ -11,12 +14,23 @@ public class Main implements Runnable {
     }
 
     public void run() {
-        Bootstrap bootstrap = new Bootstrap(Logger.getLogger("server"));
+        Logger logger = Logger.getLogger("server");
+        Bootstrap bootstrap = new Bootstrap(logger);
 
-        //bootstrap.getExecutorService().shutdown();
-        while (!bootstrap.isTerminated()) {
+        while (bootstrap.isAlive()) {
             try {
-                Thread.sleep(100);
+                bootstrap.getLogger().info("-------------------");
+                bootstrap.getLogger().info("Connected clients: ");
+
+                for (Map.Entry<Long, Info> entry : bootstrap.getClients().entrySet()) {
+                    Info clientInfo = entry.getValue();
+
+                    bootstrap.getLogger().info("   * Name: " + clientInfo.getName());
+                }
+
+                bootstrap.getLogger().info("-------------------");
+
+                Thread.sleep(10000);
             } catch (InterruptedException e) {
                 bootstrap.getLogger().warning(e.getMessage());
             }

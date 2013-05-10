@@ -4,32 +4,44 @@ import com.korotovsky.server.Callback;
 import com.korotovsky.server.client.*;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.logging.Logger;
 
 public class ClientSocket extends Thread {
     private final static String EXIT_SIGNAL = "exit";
     private final static String HELO_SIGNAL = "helo";
     private final static Integer SUPPORTED_CLIENT_VERSION = 1;
+
     private Boolean isRegistered = false;
+
     private Logger logger;
     private Socket socket;
-    private Callback registerCallback;
-    private Callback unRegisterCallback;
-    private PrintWriter writer;
+
+    private HashMap<String, Callback> callbacks;
+
+    public final static String CALLBACK_REGISTER_CLIENT = "registerClient";
+    public final static String CALLBACK_UN_REGISTER_CLIENT = "unRegisterClient";
+
+    private BufferedWriter writer;
     private BufferedReader reader;
 
-    public ClientSocket(Logger logger)
-    {
+    public ClientSocket(Logger logger) {
         this.logger = logger;
+        callbacks = new HashMap<String, Callback>();
+    }
+
+    public ClientSocket attach(String callback, Callback callable) {
+        callbacks.put(callback, callable);
+
+        return this;
     }
 
     @Override
     public void run() {
         try {
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+            writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         } catch (IOException e) {
             logger.info(e.getMessage());
         }
@@ -37,19 +49,25 @@ public class ClientSocket extends Thread {
         while (true) {
             try {
                 read();
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 logger.info(e.getMessage());
                 break;
             }
         }
     }
 
-    public boolean read() throws IOException {
+    public void write(String data) throws IOException {
+        logger.info("Write to client: " + data);
+
+        writer.write(data);
+        writer.newLine();
+        writer.flush();
+    }
+
+    public boolean read() throws Throwable {
         String line = reader.readLine();
 
         if (line == null) {
-            logger.info("Received nilled data");
-            logger.info("Remote socket has gone away: " + socket.getRemoteSocketAddress().toString());
             return close();
         }
 
@@ -62,7 +80,6 @@ public class ClientSocket extends Thread {
 
             return registerClient(heloParts);
         } else if (line.equals(EXIT_SIGNAL)) {
-            logger.info("Remote socket has gone away: " + socket.getRemoteSocketAddress().toString());
             return close();
 
         } else if (!isRegistered) {
@@ -82,27 +99,11 @@ public class ClientSocket extends Thread {
         return this;
     }
 
-    /**
-     * @param registerCallback Callback
-     * @return ClientSocket
-     */
-    public ClientSocket setRegisterCallback(Callback registerCallback) {
-        this.registerCallback = registerCallback;
+    public boolean close() throws Throwable {
+        logger.info("Remote socket has gone away: " + socket.getRemoteSocketAddress().toString());
 
-        return this;
-    }
+        callbacks.get(CALLBACK_UN_REGISTER_CLIENT).invoke(this.getId());
 
-    /**
-     * @param unRegisterCallback Callback
-     * @return ClientSocket
-     */
-    public ClientSocket setUnRegisterCallback(Callback unRegisterCallback) {
-        this.unRegisterCallback = unRegisterCallback;
-
-        return this;
-    }
-
-    public boolean close() throws IOException {
         writer.close();
         reader.close();
         socket.close();
@@ -110,8 +111,12 @@ public class ClientSocket extends Thread {
         return true;
     }
 
-    private boolean registerClient(String[] parts)
-    {
+    private boolean registerClient(String[] parts) throws IOException{
+        if (parts.length < 2) {
+            write("Received invalid helo string");
+            return false;
+        }
+
         Integer version = Integer.parseInt(parts[1]);
         String name = parts[2];
 
@@ -121,21 +126,20 @@ public class ClientSocket extends Thread {
             clientInfo.setName("Client#" + name);
 
             try {
-                registerCallback.invoke(this.getId(), clientInfo);
+                callbacks.get(CALLBACK_REGISTER_CLIENT).invoke(this.getId(), clientInfo);
+
+                write("Register success");
+
+                return isRegistered = true;
             } catch (Exception e) {
                 logger.warning(e.getMessage());
             }
+        } else {
+            write("Mismatch client version, supported version is: " + SUPPORTED_CLIENT_VERSION);
 
-            return isRegistered = true;
+            return false;
         }
 
         return false;
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        unRegisterCallback.invoke(this.getId());
-
-        super.finalize();
     }
 }

@@ -41,23 +41,18 @@ public class Bootstrap {
         }
     }
 
-    /**
-     * @return Logger
-     */
     public Logger getLogger() {
         return logger;
     }
 
-    /**
-     * @return Boolean
-     */
-    public Boolean isTerminated() {
-        return thread.isAlive();
+    public HashMap<Long, Info> getClients() {
+        return clients;
     }
 
-    /**
-     * @param serverSocket ServerSocket
-     */
+    public Boolean isAlive() {
+        return !thread.isInterrupted();
+    }
+
     private void runClientSocketsThread(final ServerSocket serverSocket) {
         final Bootstrap that = this;
 
@@ -87,8 +82,8 @@ public class Bootstrap {
                 ClientSocket clientSocket = new ClientSocket(logger);
 
                 clientSocket.setSocket(socket);
-                clientSocket.setRegisterCallback(new Callback(that, "registerClientCallback"));
-                clientSocket.setUnRegisterCallback(new Callback(that, "unRegisterClientCallback"));
+                clientSocket.attach(ClientSocket.CALLBACK_REGISTER_CLIENT, new Callback(that, "registerClientCallback"));
+                clientSocket.attach(ClientSocket.CALLBACK_UN_REGISTER_CLIENT, new Callback(that, "unRegisterClientCallback"));
 
                 synchronized (this) {
                     clientSockets.submit(clientSocket);
