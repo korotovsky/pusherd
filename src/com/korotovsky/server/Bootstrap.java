@@ -1,26 +1,31 @@
 package com.korotovsky.server;
 
-import com.korotovsky.server.network.ClientSocket;
+import com.korotovsky.server.network.*;
+import com.korotovsky.server.client.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-class Bootstrap {
+public class Bootstrap {
     private final Logger logger;
-    private Integer port = 10000;
+    private Integer port = 10001;
     private Integer connections = 1024;
     private String address = "127.0.0.1";
     private ExecutorService clientSockets;
+    private HashMap<Long, Info> clients;
     private Thread thread;
 
     public Bootstrap(final Logger logger) {
         clientSockets = Executors.newCachedThreadPool();
+        clients = new HashMap<Long, Info>();
+
         this.logger = logger;
 
         try {
@@ -53,7 +58,9 @@ class Bootstrap {
     /**
      * @param serverSocket ServerSocket
      */
-    protected void runClientSocketsThread(final ServerSocket serverSocket) {
+    private void runClientSocketsThread(final ServerSocket serverSocket) {
+        final Bootstrap that = this;
+
         thread = new Thread() {
             @Override
             public void run() {
@@ -72,13 +79,16 @@ class Bootstrap {
                 }
             }
 
-            public void addClientSockets(final ServerSocket serverSocket) throws IOException {
+            private void addClientSockets(final ServerSocket serverSocket) throws IOException {
                 Socket socket = serverSocket.accept();
 
                 logger.info("Client connected");
 
                 ClientSocket clientSocket = new ClientSocket(logger);
+
                 clientSocket.setSocket(socket);
+                clientSocket.setRegisterCallback(new Callback(that, "registerClientCallback"));
+                clientSocket.setUnRegisterCallback(new Callback(that, "unRegisterClientCallback"));
 
                 synchronized (this) {
                     clientSockets.submit(clientSocket);
@@ -87,5 +97,19 @@ class Bootstrap {
         };
 
         thread.start();
+    }
+
+    public void registerClientCallback(Long key, Info clientInfo)
+    {
+        synchronized (this) {
+            clients.put(key, clientInfo);
+        }
+    }
+
+    public void unRegisterClientCallback(Long key)
+    {
+        synchronized (this) {
+            clients.remove(key);
+        }
     }
 }
