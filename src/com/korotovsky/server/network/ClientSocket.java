@@ -1,6 +1,6 @@
 package com.korotovsky.server.network;
 
-import com.korotovsky.server.Callback;
+import com.korotovsky.server.TBaseFunction;
 import com.korotovsky.server.client.*;
 import com.korotovsky.server.core.PlayerGame;
 import com.korotovsky.server.network.protocol.*;
@@ -31,23 +31,23 @@ public class ClientSocket implements Runnable {
     private Logger logger;
     private Socket socket;
 
-    private HashMap<String, Callback> callbacks;
+    private HashMap<String, TBaseFunction> callbacks;
 
     private BufferedWriter writer;
     private BufferedReader reader;
 
     public ClientSocket(Socket socket, Logger logger) {
-        callbacks = new HashMap<String, Callback>();
+        callbacks = new HashMap<String, TBaseFunction>();
 
         this.socket = socket;
         this.logger = logger;
 
-        attach(ClientSocket.CALLBACK_MESSAGE, new Callback(this, CALLBACK_MESSAGE));
+        /*attach(ClientSocket.CALLBACK_MESSAGE, new Callback(this, CALLBACK_MESSAGE));
         attach(ClientSocket.CALLBACK_HANDSHAKE, new Callback(this, CALLBACK_HANDSHAKE));
-        attach(ClientSocket.CALLBACK_CLOSE_CONNECTION, new Callback(this, CALLBACK_CLOSE_CONNECTION));
+        attach(ClientSocket.CALLBACK_CLOSE_CONNECTION, new Callback(this, CALLBACK_CLOSE_CONNECTION));*/
     }
 
-    public ClientSocket attach(String callback, Callback callable) {
+    public ClientSocket attach(String callback, TBaseFunction callable) {
         callbacks.put(callback, callable);
 
         return this;

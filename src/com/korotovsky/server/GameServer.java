@@ -23,6 +23,7 @@ public class GameServer {
 
     private ExecutorService workers;
     private ExecutorService listener;
+
     private HashMap<Integer, ClientSocket> clientSockets;
     private HashMap<Integer, Info> clients;
 
@@ -97,9 +98,19 @@ public class GameServer {
 
                 ClientSocket clientSocket = new ClientSocket(socket, logger);
 
-                clientSocket.attach(ClientSocket.CALLBACK_BT_PUT_CLIENT, new Callback(that, ClientSocket.CALLBACK_BT_PUT_CLIENT));
-                clientSocket.attach(ClientSocket.CALLBACK_BT_POP_CLIENT, new Callback(that, ClientSocket.CALLBACK_BT_POP_CLIENT));
-
+                clientSocket.attach(ClientSocket.CALLBACK_BT_PUT_CLIENT, new TFunction2<ClientSocket, Info, TFunction>() {
+                    @Override
+                    public synchronized TFunction invoke2(ClientSocket clientSocket, Info clientInfo) {
+                        clients.put(clientSocket.hashCode(), clientInfo);
+                    }
+                });
+                clientSocket.attach(ClientSocket.CALLBACK_BT_POP_CLIENT, new Callback1<ClientSocket>() {
+                    @Override
+                    public synchronized void invoke(ClientSocket clientSocket) {
+                        clientSockets.remove(clientSocket.hashCode());
+                        clients.remove(clientSocket.hashCode());
+                    }
+                });
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_GET_PLAYERS, new Callback(that.game, ClientSocket.CALLBACK_GAME_GET_PLAYERS));
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_PUSH, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_PUSH));
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_READY, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_READY));
@@ -110,16 +121,5 @@ public class GameServer {
                 }
             }
         });
-    }
-
-    public synchronized void putClient(ClientSocket clientSocket, Info clientInfo)
-    {
-        clients.put(clientSocket.hashCode(), clientInfo);
-    }
-
-    public synchronized void removeClient(ClientSocket clientSocket)
-    {
-        clientSockets.remove(clientSocket.hashCode());
-        clients.remove(clientSocket.hashCode());
     }
 }
