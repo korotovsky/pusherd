@@ -22,6 +22,7 @@ public class GameServer {
     private String address = "127.0.0.1";
 
     private ExecutorService workers;
+    private ExecutorService listener;
     private HashMap<Integer, ClientSocket> clientSockets;
     private HashMap<Integer, Info> clients;
 
@@ -30,6 +31,7 @@ public class GameServer {
 
     public GameServer(final Logger logger) {
         workers = Executors.newCachedThreadPool();
+        listener = Executors.newSingleThreadExecutor();
 
         clientSockets = new HashMap<Integer, ClientSocket>();
         clients = new HashMap<Integer, Info>();
@@ -64,13 +66,13 @@ public class GameServer {
     }
 
     public Boolean isAlive() {
-        return true;
+        return !listener.isTerminated();
     }
 
     private void runClientSocketsThread(final ServerSocket serverSocket) {
         final GameServer that = this;
 
-        runnable = new Runnable() {
+        listener.submit(new Runnable() {
             @Override
             public void run() {
                 while (true) {
@@ -103,13 +105,11 @@ public class GameServer {
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_READY, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_READY));
 
                 synchronized (this) {
-                    clientSockets.put(clientSocket.hashCode(),clientSocket);
+                    clientSockets.put(clientSocket.hashCode(), clientSocket);
                     workers.submit(clientSocket);
                 }
             }
-        };
-
-        runnable.run();
+        });
     }
 
     public synchronized void putClient(ClientSocket clientSocket, Info clientInfo)
