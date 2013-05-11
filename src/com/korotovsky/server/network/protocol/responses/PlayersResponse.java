@@ -13,9 +13,9 @@ public class PlayersResponse extends Response {
     protected String status = "ok";
     protected String message = "";
 
-    private HashMap<Long, Info> players;
+    private HashMap<Integer, Info> players;
 
-    public PlayersResponse(HashMap<Long, Info> players, BufferedWriter writer) {
+    public PlayersResponse(HashMap<Integer, Info> players, BufferedWriter writer) {
         super(writer);
 
         this.players = players;
@@ -23,7 +23,7 @@ public class PlayersResponse extends Response {
 
     public void send() throws IOException {
         Integer counter = 0;
-        for (Map.Entry<Long, Info> entry : players.entrySet()) {
+        for (Map.Entry<Integer, Info> entry : players.entrySet()) {
             Info clientInfo = entry.getValue();
 
             if (counter != 0) {

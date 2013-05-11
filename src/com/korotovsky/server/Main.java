@@ -14,25 +14,24 @@ public class Main implements Runnable {
     }
 
     public void run() {
-        Logger logger = Logger.getLogger("server");
-        Bootstrap bootstrap = new Bootstrap(logger);
+        GameServer gameServer = new GameServer(Logger.getLogger("server"));
 
-        while (bootstrap.isAlive()) {
+        while (gameServer.isAlive()) {
             try {
-                bootstrap.getLogger().info("-------------------");
-                bootstrap.getLogger().info("Connected clients: ");
+                gameServer.getLogger().info("-------------------");
+                gameServer.getLogger().info("Connected clients: ");
 
-                for (Map.Entry<Long, Info> entry : bootstrap.getClients().entrySet()) {
+                for (Map.Entry<Integer, Info> entry : gameServer.getClients().entrySet()) {
                     Info clientInfo = entry.getValue();
 
-                    bootstrap.getLogger().info("   * Name: " + clientInfo.getName());
+                    gameServer.getLogger().info("   * Name: " + clientInfo.getName());
                 }
 
-                bootstrap.getLogger().info("-------------------");
+                gameServer.getLogger().info("-------------------");
 
                 Thread.sleep(10000);
             } catch (InterruptedException e) {
-                bootstrap.getLogger().warning(e.getMessage());
+                gameServer.getLogger().warning(e.getMessage());
             }
         }
     }

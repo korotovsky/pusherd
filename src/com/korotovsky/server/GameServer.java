@@ -9,24 +9,31 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-public class Bootstrap {
+public class GameServer {
     private final Logger logger;
+
     private Integer port = 10001;
     private Integer connections = 1024;
     private String address = "127.0.0.1";
-    private ExecutorService clientSockets;
-    private HashMap<Long, Info> clients;
-    private Thread thread;
+
+    private ExecutorService workers;
+    private HashMap<Integer, ClientSocket> clientSockets;
+    private HashMap<Integer, Info> clients;
+
+    private Runnable runnable;
     private Game game;
 
-    public Bootstrap(final Logger logger) {
-        clientSockets = Executors.newCachedThreadPool();
-        clients = new HashMap<Long, Info>();
+    public GameServer(final Logger logger) {
+        workers = Executors.newCachedThreadPool();
+
+        clientSockets = new HashMap<Integer, ClientSocket>();
+        clients = new HashMap<Integer, Info>();
+
         game = new Game(this);
 
         this.logger = logger;
@@ -48,18 +55,22 @@ public class Bootstrap {
         return logger;
     }
 
-    public HashMap<Long, Info> getClients() {
+    public HashMap<Integer, Info> getClients() {
         return clients;
     }
 
+    public ExecutorService getWorkers() {
+        return workers;
+    }
+
     public Boolean isAlive() {
-        return !thread.isInterrupted();
+        return true;
     }
 
     private void runClientSocketsThread(final ServerSocket serverSocket) {
-        final Bootstrap that = this;
+        final GameServer that = this;
 
-        thread = new Thread() {
+        runnable = new Runnable() {
             @Override
             public void run() {
                 while (true) {
@@ -82,35 +93,33 @@ public class Bootstrap {
 
                 logger.info("Client connected");
 
-                ClientSocket clientSocket = new ClientSocket(logger);
+                ClientSocket clientSocket = new ClientSocket(socket, logger);
 
-                clientSocket.setSocket(socket);
-                clientSocket.attach(ClientSocket.CALLBACK_BT_PUSH_CLIENT, new Callback(that, "registerClientCallback"));
-                clientSocket.attach(ClientSocket.CALLBACK_BT_POP_CLIENT, new Callback(that, "unRegisterClientCallback"));
+                clientSocket.attach(ClientSocket.CALLBACK_BT_PUT_CLIENT, new Callback(that, ClientSocket.CALLBACK_BT_PUT_CLIENT));
+                clientSocket.attach(ClientSocket.CALLBACK_BT_POP_CLIENT, new Callback(that, ClientSocket.CALLBACK_BT_POP_CLIENT));
+
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_GET_PLAYERS, new Callback(that.game, ClientSocket.CALLBACK_GAME_GET_PLAYERS));
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_PUSH, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_PUSH));
                 clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_READY, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_READY));
 
                 synchronized (this) {
-                    clientSockets.submit(clientSocket);
+                    clientSockets.put(clientSocket.hashCode(),clientSocket);
+                    workers.submit(clientSocket);
                 }
             }
         };
 
-        thread.start();
+        runnable.run();
     }
 
-    public void registerClientCallback(Long key, Info clientInfo)
+    public synchronized void putClient(ClientSocket clientSocket, Info clientInfo)
     {
-        synchronized (this) {
-            clients.put(key, clientInfo);
-        }
+        clients.put(clientSocket.hashCode(), clientInfo);
     }
 
-    public void unRegisterClientCallback(Long key)
+    public synchronized void removeClient(ClientSocket clientSocket)
     {
-        synchronized (this) {
-            clients.remove(key);
-        }
+        clientSockets.remove(clientSocket.hashCode());
+        clients.remove(clientSocket.hashCode());
     }
 }

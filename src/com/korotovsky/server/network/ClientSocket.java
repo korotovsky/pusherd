@@ -13,11 +13,11 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-public class ClientSocket extends Thread {
+public class ClientSocket implements Runnable {
     public final static Integer SUPPORTED_CLIENT_VERSION = 1;
 
-    public final static String CALLBACK_BT_PUSH_CLIENT = "registerClient";
-    public final static String CALLBACK_BT_POP_CLIENT = "unRegisterClient";
+    public final static String CALLBACK_BT_PUT_CLIENT = "putClient";
+    public final static String CALLBACK_BT_POP_CLIENT = "removeClient";
     public final static String CALLBACK_GAME_GET_PLAYERS = "getPlayers";
     public final static String CALLBACK_GAME_PLAYER_READY = "setPlayerReady";
     public final static String CALLBACK_GAME_PLAYER_PUSH = "setPlayerPush";
@@ -36,9 +36,11 @@ public class ClientSocket extends Thread {
     private BufferedWriter writer;
     private BufferedReader reader;
 
-    public ClientSocket(Logger logger) {
-        this.logger = logger;
+    public ClientSocket(Socket socket, Logger logger) {
         callbacks = new HashMap<String, Callback>();
+
+        this.socket = socket;
+        this.logger = logger;
 
         attach(ClientSocket.CALLBACK_MESSAGE, new Callback(this, CALLBACK_MESSAGE));
         attach(ClientSocket.CALLBACK_HANDSHAKE, new Callback(this, CALLBACK_HANDSHAKE));
@@ -74,24 +76,8 @@ public class ClientSocket extends Thread {
         return writer;
     }
 
-    public ClientSocket setSocket(Socket socket) {
-        this.socket = socket;
-
-        return this;
-    }
-
     public Boolean getIsRegistered() {
         return isRegistered;
-    }
-
-    private boolean read() throws Throwable {
-        Request request = new Request(this, reader);
-
-        String callback = request.dispatch();
-
-        callbacks.get(callback).invoke(this, request);
-
-        return true;
     }
 
     /**
@@ -111,7 +97,7 @@ public class ClientSocket extends Thread {
      * @throws Throwable
      */
     public void close(ClientSocket clientSocket, Request request) throws Throwable {
-        callbacks.get(CALLBACK_BT_POP_CLIENT).invoke(getId());
+        callbacks.get(CALLBACK_BT_POP_CLIENT).invoke(clientSocket);
 
         writer.close();
         reader.close();
@@ -140,7 +126,7 @@ public class ClientSocket extends Thread {
             clientInfo.setName(name);
 
             try {
-                callbacks.get(CALLBACK_BT_PUSH_CLIENT).invoke(this.getId(), clientInfo);
+                callbacks.get(CALLBACK_BT_PUT_CLIENT).invoke(clientSocket, clientInfo);
 
                 new AcceptedResponse(writer).send();
 
@@ -151,5 +137,15 @@ public class ClientSocket extends Thread {
         } else {
             new ErrorResponse(writer).setMessage(ErrorResponse.MSG_MISMATCH_VERSION).send();
         }
+    }
+
+    private boolean read() throws Throwable {
+        Request request = new Request(this, reader);
+
+        String callback = request.dispatch();
+
+        callbacks.get(callback).invoke(this, request);
+
+        return true;
     }
 }
