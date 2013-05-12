@@ -7,7 +7,7 @@ import com.korotovsky.pusherd.network.ClientSocket;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.net.Socket;
@@ -18,8 +18,8 @@ import java.util.logging.Logger;
 public class GameServerTest {
     private static GameServer gameServer;
 
-    @BeforeClass
-    public static void initServer() {
+    @Before
+    public void initServer() {
         gameServer = new GameServer(Logger.getLogger("pusherd"));
     }
 
@@ -62,8 +62,14 @@ public class GameServerTest {
 
     @Test
     public void testOnRemoveClient() {
-        gameServer.onRemoveClient(new ClientSocket(gameServer, new Socket()));
+        ClientSocket clientSocket = new ClientSocket(gameServer, new Socket());
+
+        gameServer.onPutClient(clientSocket, new Player(new PlayerGame()));
 
         Assert.assertEquals(new Integer(1), gameServer.getPlayersCount());
+
+        gameServer.onRemoveClient(clientSocket);
+
+        Assert.assertEquals(new Integer(0), gameServer.getPlayersCount());
     }
 }
