@@ -2,7 +2,7 @@ package com.korotovsky.server.core;
 
 import com.korotovsky.server.GameServer;
 import com.korotovsky.server.client.*;
-import com.korotovsky.server.evets.GameEvents;
+import com.korotovsky.server.events.GameEvents;
 import com.korotovsky.server.network.ClientSocket;
 import com.korotovsky.server.network.protocol.responses.ErrorResponse;
 import com.korotovsky.server.network.protocol.responses.MessageResponse;

@@ -1,7 +1,7 @@
 package com.korotovsky.server.client;
 
 import com.korotovsky.server.core.PlayerGame;
-import com.korotovsky.server.evets.PlayerGameEvents;
+import com.korotovsky.server.events.PlayerGameEvents;
 
 public class Player implements PlayerGameEvents {
     private Integer version;

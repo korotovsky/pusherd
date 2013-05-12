@@ -2,13 +2,12 @@ package com.korotovsky.server;
 
 import com.korotovsky.server.core.Game;
 import com.korotovsky.server.client.*;
-import com.korotovsky.server.evets.GameServerEvents;
+import com.korotovsky.server.events.GameServerEvents;
 import com.korotovsky.server.network.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

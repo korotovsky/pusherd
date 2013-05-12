@@ -1,4 +1,4 @@
-package com.korotovsky.server.evets;
+package com.korotovsky.server.events;
 
 import com.korotovsky.server.network.ClientSocket;
 

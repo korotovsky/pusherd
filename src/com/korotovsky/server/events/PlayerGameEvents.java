@@ -1,4 +1,4 @@
-package com.korotovsky.server.evets;
+package com.korotovsky.server.events;
 
 public interface PlayerGameEvents {
 
