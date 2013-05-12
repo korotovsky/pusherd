@@ -58,6 +58,10 @@ public class GameServer implements GameServerEvents {
         return clients;
     }
 
+    public Integer getPlayersCount() {
+        return clients.size();
+    }
+
     public ExecutorService getWorkers() {
         return workers;
     }

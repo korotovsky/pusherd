@@ -1,4 +1,4 @@
-package com.korotovsky.server.network.protocol.responses;
+package com.korotovsky.server.network.protocol.responses.game;
 
 import com.korotovsky.server.network.ClientSocket;
 import com.korotovsky.server.network.protocol.*;
@@ -6,7 +6,6 @@ import com.korotovsky.server.client.*;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

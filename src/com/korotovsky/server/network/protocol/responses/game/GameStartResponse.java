@@ -1,15 +1,15 @@
-package com.korotovsky.server.network.protocol.responses;
+package com.korotovsky.server.network.protocol.responses.game;
 
-import com.korotovsky.server.network.protocol.*;
+import com.korotovsky.server.network.protocol.Response;
 
 import java.io.BufferedWriter;
 
-public class AcceptedResponse extends Response {
-    protected String type = "message";
+public class GameStartResponse extends Response {
+    protected String type = "game";
     protected String status = "ok";
-    protected String message = "Successful handshake";
+    protected String message = "start";
 
-    public AcceptedResponse(BufferedWriter writer) {
+    public GameStartResponse(BufferedWriter writer) {
         super(writer);
     }
 

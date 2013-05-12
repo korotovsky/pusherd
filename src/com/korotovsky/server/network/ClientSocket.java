@@ -5,9 +5,9 @@ import com.korotovsky.server.client.*;
 import com.korotovsky.server.core.PlayerGame;
 import com.korotovsky.server.events.PlayerEvents;
 import com.korotovsky.server.network.protocol.*;
-import com.korotovsky.server.network.protocol.responses.AcceptedResponse;
-import com.korotovsky.server.network.protocol.responses.ErrorResponse;
-import com.korotovsky.server.network.protocol.responses.MessageResponse;
+import com.korotovsky.server.network.protocol.responses.system.AcceptedResponse;
+import com.korotovsky.server.network.protocol.responses.system.ErrorResponse;
+import com.korotovsky.server.network.protocol.responses.system.MessageResponse;
 
 import java.io.*;
 import java.net.Socket;
@@ -77,7 +77,10 @@ public class ClientSocket
      * @throws Throwable
      */
     public void onCloseConnection(Request request) throws Throwable {
+        Player player = gameServer.getPlayers().get(this);
+
         gameServer.onRemoveClient(this);
+        gameServer.getGame().onPlayerDisconnected(this, player);
 
         writer.close();
         reader.close();
@@ -107,6 +110,7 @@ public class ClientSocket
 
             try {
                 gameServer.onPutClient(this, player);
+                gameServer.getGame().onPlayerConnected(this, player);
 
                 new AcceptedResponse(writer).send();
 

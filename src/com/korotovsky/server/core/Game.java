@@ -4,16 +4,16 @@ import com.korotovsky.server.GameServer;
 import com.korotovsky.server.client.*;
 import com.korotovsky.server.events.GameEvents;
 import com.korotovsky.server.network.ClientSocket;
-import com.korotovsky.server.network.protocol.responses.ErrorResponse;
-import com.korotovsky.server.network.protocol.responses.MessageResponse;
-import com.korotovsky.server.network.protocol.responses.PlayersResponse;
+import com.korotovsky.server.network.protocol.responses.game.*;
+import com.korotovsky.server.network.protocol.responses.system.ErrorResponse;
+import com.korotovsky.server.network.protocol.responses.system.MessageResponse;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 
 public class Game implements GameEvents {
+    public static Integer WIN_LIMIT = 10;
     private GameServer gameServer;
     private Integer counter = 0;
     private Boolean isStarted = false;
@@ -44,10 +44,10 @@ public class Game implements GameEvents {
     }
 
     public Boolean isGameEnded() {
-        return isStarted && counter == 100;
+        return isStarted && counter.equals(WIN_LIMIT);
     }
 
-    public Player searchWinner(ConcurrentHashMap<ClientSocket, Player> players) {
+    private Player searchWinner(ConcurrentHashMap<ClientSocket, Player> players) {
         for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
             Player player = entry.getValue();
 
@@ -59,7 +59,7 @@ public class Game implements GameEvents {
         return new Player(new PlayerGame());
     }
 
-    public Boolean startIsAllReady() {
+    private Boolean startIsAllReady() {
         ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
 
         for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
@@ -75,22 +75,48 @@ public class Game implements GameEvents {
         return true;
     }
 
-    public void notifyAllPlayers() {
+    /**
+     * Callback on new player connected to the game (after handshake)
+     *
+     * @param clientSocket ClientSocket
+     * @throws java.io.IOException
+     */
+    public void onPlayerConnected(ClientSocket clientSocket, Player player) throws IOException {
         ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
-        ExecutorService clientSockets = gameServer.getWorkers();
 
         for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
-            Player player = entry.getValue();
+            ClientSocket cs = entry.getKey();
+            if (clientSocket.equals(cs)) {
+                continue;
+            }
 
+            new PlayerConnectedResponse(player, cs.getWriter()).send();
         }
+    }
 
+    /**
+     * Callback on player disconnected from the game
+     *
+     * @param clientSocket ClientSocket
+     * @throws java.io.IOException
+     */
+    public void onPlayerDisconnected(ClientSocket clientSocket, Player player) throws IOException {
+        ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
+
+        for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+            ClientSocket cs = entry.getKey();
+            if (clientSocket.equals(cs)) {
+                continue;
+            }
+
+            new PlayerDisconnectedResponse(player, cs.getWriter()).send();
+        }
     }
 
     /**
      * Callback getting players
      *
      * @param clientSocket ClientSocket
-     * @param request      Request
      * @throws java.io.IOException
      */
     public void onGetPlayers(ClientSocket clientSocket) throws IOException {
@@ -101,19 +127,23 @@ public class Game implements GameEvents {
      * Callback player is ready to game
      *
      * @param clientSocket ClientSocket
-     * @param request      Request
      * @throws IOException
      */
     public synchronized void onPlayerIsReady(ClientSocket clientSocket) throws IOException {
         Player player = gameServer.getPlayers().get(clientSocket);
+        ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
 
         player.getPlayerGame().setReady(true);
 
-        if (startIsAllReady()) {
-            notifyAllPlayers();
-        }
-
         new MessageResponse(clientSocket.getWriter()).setMessage("Ready").send();
+
+        if (gameServer.getPlayersCount() > 1 && startIsAllReady()) {
+            for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+                ClientSocket cs = entry.getKey();
+
+                new GameStartResponse(cs.getWriter()).send();
+            }
+        }
     }
 
     /**
@@ -137,6 +167,9 @@ public class Game implements GameEvents {
             new ErrorResponse(clientSocket.getWriter()).setMessage("Game already ended").send();
             return;
 
+        } else if (gameServer.getPlayersCount() < 2) {
+            new ErrorResponse(clientSocket.getWriter()).setMessage("Not enough players to start game").send();
+            return;
         }
 
         synchronized (this) {
@@ -146,8 +179,13 @@ public class Game implements GameEvents {
             if (isGameEnded()) {
                 Player winner = searchWinner(gameServer.getPlayers());
 
-                new MessageResponse(clientSocket.getWriter()).setMessage("TODO: Broadcast game end").send();
-                new MessageResponse(clientSocket.getWriter()).setMessage("Winner: " + winner.getName()).send();
+                ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
+                for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+                    ClientSocket cs = entry.getKey();
+
+                    new GameEndResponse(cs.getWriter()).send();
+                    new GameWinnerResponse(winner, cs.getWriter()).send();
+                }
             }
         }
 

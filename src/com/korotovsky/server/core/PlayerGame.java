@@ -9,7 +9,7 @@ public class PlayerGame {
         if (isReady && !isWinner) {
             counter++;
 
-            if (counter == 100) {
+            if (counter.equals(Game.WIN_LIMIT)) {
                 setWinner(true);
             }
         }

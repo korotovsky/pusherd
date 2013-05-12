@@ -1,4 +1,4 @@
-package com.korotovsky.server.network.protocol.responses;
+package com.korotovsky.server.network.protocol.responses.system;
 
 import com.korotovsky.server.network.protocol.*;
 
