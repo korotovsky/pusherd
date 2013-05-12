@@ -186,9 +186,9 @@ public class Game implements GameEvents {
                     new GameEndResponse(cs.getWriter()).send();
                     new GameWinnerResponse(winner, cs.getWriter()).send();
                 }
+            } else {
+                new MessageResponse(clientSocket.getWriter()).setMessage("Pushed").send();
             }
         }
-
-        new MessageResponse(clientSocket.getWriter()).setMessage("Pushed").send();
     }
 }

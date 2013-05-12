@@ -27,7 +27,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.korotovsky.server.Main</mainClass>
+                            <mainClass>main.java.korotovsky.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
