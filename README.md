@@ -1,7 +1,11 @@
 Pusherd - a simple Java game server
 =======
 
-This is a simple game server, written in Java, without using third-party libraries
+This is a simple game server, written in Java, without using third-party libraries.
+
+Will be lister connections on 127.0.0.1 and 10001 port.
+TODO: cli implementation for the server
+TODO: GUI client url
 
 Description
 ===
