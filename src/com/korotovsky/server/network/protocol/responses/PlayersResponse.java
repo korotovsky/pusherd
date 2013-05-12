@@ -1,5 +1,6 @@
 package com.korotovsky.server.network.protocol.responses;
 
+import com.korotovsky.server.network.ClientSocket;
 import com.korotovsky.server.network.protocol.*;
 import com.korotovsky.server.client.*;
 
@@ -7,15 +8,16 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayersResponse extends Response {
     protected String type = "game";
     protected String status = "ok";
     protected String message = "";
 
-    private HashMap<Integer, Info> players;
+    private ConcurrentHashMap<ClientSocket, Player> players;
 
-    public PlayersResponse(HashMap<Integer, Info> players, BufferedWriter writer) {
+    public PlayersResponse(ConcurrentHashMap<ClientSocket, Player> players, BufferedWriter writer) {
         super(writer);
 
         this.players = players;
@@ -23,14 +25,14 @@ public class PlayersResponse extends Response {
 
     public void send() throws IOException {
         Integer counter = 0;
-        for (Map.Entry<Integer, Info> entry : players.entrySet()) {
-            Info clientInfo = entry.getValue();
+        for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+            Player player = entry.getValue();
 
             if (counter != 0) {
                 message += ",";
             }
 
-            message += "name=" + clientInfo.getName();
+            message += "name=" + player.getName();
             counter++;
         }
 

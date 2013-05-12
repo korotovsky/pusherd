@@ -2,18 +2,18 @@ package com.korotovsky.server.core;
 
 import com.korotovsky.server.GameServer;
 import com.korotovsky.server.client.*;
+import com.korotovsky.server.evets.GameEvents;
 import com.korotovsky.server.network.ClientSocket;
-import com.korotovsky.server.network.protocol.*;
 import com.korotovsky.server.network.protocol.responses.ErrorResponse;
 import com.korotovsky.server.network.protocol.responses.MessageResponse;
 import com.korotovsky.server.network.protocol.responses.PlayersResponse;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
-public class Game {
+public class Game implements GameEvents {
     private GameServer gameServer;
     private Integer counter = 0;
     private Boolean isStarted = false;
@@ -47,23 +47,23 @@ public class Game {
         return isStarted && counter == 100;
     }
 
-    public Info searchWinner(HashMap<Integer, Info> players) {
-        for (Map.Entry<Integer, Info> entry : players.entrySet()) {
-            Info player = entry.getValue();
+    public Player searchWinner(ConcurrentHashMap<ClientSocket, Player> players) {
+        for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+            Player player = entry.getValue();
 
             if (player.getPlayerGame().getWinner()) {
                 return player;
             }
         }
 
-        return new Info(new PlayerGame());
+        return new Player(new PlayerGame());
     }
 
     public Boolean startIsAllReady() {
-        HashMap<Integer, Info> players = gameServer.getClients();
+        ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
 
-        for (Map.Entry<Integer, Info> entry : players.entrySet()) {
-            Info player = entry.getValue();
+        for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+            Player player = entry.getValue();
 
             if (!player.getPlayerGame().getReady()) {
                 return false;
@@ -76,11 +76,11 @@ public class Game {
     }
 
     public void notifyAllPlayers() {
-        HashMap<Integer, Info> players = gameServer.getClients();
+        ConcurrentHashMap<ClientSocket, Player> players = gameServer.getPlayers();
         ExecutorService clientSockets = gameServer.getWorkers();
 
-        for (Map.Entry<Integer, Info> entry : players.entrySet()) {
-            Info player = entry.getValue();
+        for (Map.Entry<ClientSocket, Player> entry : players.entrySet()) {
+            Player player = entry.getValue();
 
         }
 
@@ -88,22 +88,24 @@ public class Game {
 
     /**
      * Callback getting players
+     *
      * @param clientSocket ClientSocket
-     * @param request Request
+     * @param request      Request
      * @throws java.io.IOException
      */
-    public void getPlayers(ClientSocket clientSocket, Request request) throws IOException {
-        new PlayersResponse(gameServer.getClients(), clientSocket.getWriter()).send();
+    public void onGetPlayers(ClientSocket clientSocket) throws IOException {
+        new PlayersResponse(gameServer.getPlayers(), clientSocket.getWriter()).send();
     }
 
     /**
      * Callback player is ready to game
+     *
      * @param clientSocket ClientSocket
-     * @param request Request
+     * @param request      Request
      * @throws IOException
      */
-    public synchronized void setPlayerReady(ClientSocket clientSocket, Request request) throws IOException {
-        Info player = gameServer.getClients().get(clientSocket.hashCode());
+    public synchronized void onPlayerIsReady(ClientSocket clientSocket) throws IOException {
+        Player player = gameServer.getPlayers().get(clientSocket);
 
         player.getPlayerGame().setReady(true);
 
@@ -116,12 +118,12 @@ public class Game {
 
     /**
      * Callback increase push-count for player
+     *
      * @param clientSocket ClientSocket
-     * @param request Request
      * @throws IOException
      */
-    public void setPlayerPush(ClientSocket clientSocket, Request request) throws IOException {
-        Info player = gameServer.getClients().get(clientSocket.hashCode());
+    public void onPush(ClientSocket clientSocket) throws IOException {
+        Player player = gameServer.getPlayers().get(clientSocket);
 
         if (!player.getPlayerGame().getReady()) {
             new ErrorResponse(clientSocket.getWriter()).setMessage("You are not ready").send();
@@ -142,7 +144,7 @@ public class Game {
             increment();
 
             if (isGameEnded()) {
-                Info winner = searchWinner(gameServer.getClients());
+                Player winner = searchWinner(gameServer.getPlayers());
 
                 new MessageResponse(clientSocket.getWriter()).setMessage("TODO: Broadcast game end").send();
                 new MessageResponse(clientSocket.getWriter()).setMessage("Winner: " + winner.getName()).send();

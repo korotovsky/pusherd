@@ -1,6 +1,7 @@
 package com.korotovsky.server;
 
 import com.korotovsky.server.client.*;
+import com.korotovsky.server.network.ClientSocket;
 
 import java.util.Map;
 import java.util.logging.Logger;
@@ -21,10 +22,10 @@ public class Main implements Runnable {
                 gameServer.getLogger().info("-------------------");
                 gameServer.getLogger().info("Connected clients: ");
 
-                for (Map.Entry<Integer, Info> entry : gameServer.getClients().entrySet()) {
-                    Info clientInfo = entry.getValue();
+                for (Map.Entry<ClientSocket, Player> entry : gameServer.getPlayers().entrySet()) {
+                    Player player = entry.getValue();
 
-                    gameServer.getLogger().info("   * Name: " + clientInfo.getName());
+                    gameServer.getLogger().info("   * Name: " + player.getName());
                 }
 
                 gameServer.getLogger().info("-------------------");

@@ -2,6 +2,7 @@ package com.korotovsky.server;
 
 import com.korotovsky.server.core.Game;
 import com.korotovsky.server.client.*;
+import com.korotovsky.server.evets.GameServerEvents;
 import com.korotovsky.server.network.*;
 
 import java.io.IOException;
@@ -10,34 +11,27 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-public class GameServer {
+public class GameServer implements GameServerEvents {
     private final Logger logger;
 
     private Integer port = 10001;
     private Integer connections = 1024;
     private String address = "127.0.0.1";
 
-    private ExecutorService workers;
-    private ExecutorService listener;
-    private HashMap<Integer, ClientSocket> clientSockets;
-    private HashMap<Integer, Info> clients;
+    private ExecutorService workers = Executors.newCachedThreadPool();
+    private ExecutorService listener = Executors.newSingleThreadExecutor();
 
-    private Runnable runnable;
-    private Game game;
+    private Set<ClientSocket> clientSockets = Collections.synchronizedSet(new HashSet<ClientSocket>());
+    private ConcurrentHashMap<ClientSocket, Player> clients = new ConcurrentHashMap<ClientSocket, Player>();
+
+    private Game game = new Game(this);
 
     public GameServer(final Logger logger) {
-        workers = Executors.newCachedThreadPool();
-        listener = Executors.newSingleThreadExecutor();
-
-        clientSockets = new HashMap<Integer, ClientSocket>();
-        clients = new HashMap<Integer, Info>();
-
-        game = new Game(this);
-
         this.logger = logger;
 
         try {
@@ -57,7 +51,11 @@ public class GameServer {
         return logger;
     }
 
-    public HashMap<Integer, Info> getClients() {
+    public Game getGame() {
+        return game;
+    }
+
+    public ConcurrentHashMap<ClientSocket, Player> getPlayers() {
         return clients;
     }
 
@@ -91,35 +89,23 @@ public class GameServer {
             }
 
             private void addClientSockets(final ServerSocket serverSocket) throws IOException {
-                Socket socket = serverSocket.accept();
+                ClientSocket clientSocket = new ClientSocket(that, serverSocket.accept());
 
-                logger.info("Client connected");
-
-                ClientSocket clientSocket = new ClientSocket(socket, logger);
-
-                clientSocket.attach(ClientSocket.CALLBACK_BT_PUT_CLIENT, new Callback(that, ClientSocket.CALLBACK_BT_PUT_CLIENT));
-                clientSocket.attach(ClientSocket.CALLBACK_BT_POP_CLIENT, new Callback(that, ClientSocket.CALLBACK_BT_POP_CLIENT));
-
-                clientSocket.attach(ClientSocket.CALLBACK_GAME_GET_PLAYERS, new Callback(that.game, ClientSocket.CALLBACK_GAME_GET_PLAYERS));
-                clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_PUSH, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_PUSH));
-                clientSocket.attach(ClientSocket.CALLBACK_GAME_PLAYER_READY, new Callback(that.game, ClientSocket.CALLBACK_GAME_PLAYER_READY));
+                clientSockets.add(clientSocket);
 
                 synchronized (this) {
-                    clientSockets.put(clientSocket.hashCode(), clientSocket);
                     workers.submit(clientSocket);
                 }
             }
         });
     }
 
-    public synchronized void putClient(ClientSocket clientSocket, Info clientInfo)
-    {
-        clients.put(clientSocket.hashCode(), clientInfo);
+    public void onPutClient(ClientSocket clientSocket, Player player) {
+        clients.put(clientSocket, player);
     }
 
-    public synchronized void removeClient(ClientSocket clientSocket)
-    {
-        clientSockets.remove(clientSocket.hashCode());
-        clients.remove(clientSocket.hashCode());
+    public void onRemoveClient(ClientSocket clientSocket) {
+        clientSockets.remove(clientSocket);
+        clients.remove(clientSocket);
     }
 }

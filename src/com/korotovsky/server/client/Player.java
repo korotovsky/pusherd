@@ -1,13 +1,14 @@
 package com.korotovsky.server.client;
 
 import com.korotovsky.server.core.PlayerGame;
+import com.korotovsky.server.evets.PlayerGameEvents;
 
-public class Info {
+public class Player implements PlayerGameEvents {
     private Integer version;
     private String name;
     private PlayerGame playerGame;
 
-    public Info(PlayerGame playerGame) {
+    public Player(PlayerGame playerGame) {
         this.playerGame = playerGame;
     }
 
