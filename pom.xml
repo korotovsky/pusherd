@@ -27,7 +27,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>main.java.korotovsky.Main</mainClass>
+                            <mainClass>com.korotovsky.pusherd.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
